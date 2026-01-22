@@ -9,10 +9,10 @@ It is organized into three main sections:
 
 
 ## 2. AXI-Lite SRAM Controller
-**Read more:** [AXI-Lite SRAM Controller](docs/sram_controller.md)
+**Read more:** [AXI-Lite SRAM Controller](/docs/sram_controller.md)
 
 
 ## 3. SRAM Basics
-**Read more:** [SRAM Basics](docs/sram_basics.md)
+**Read more:** [SRAM Basics](/docs/sram_basics.md)
 
 ---
