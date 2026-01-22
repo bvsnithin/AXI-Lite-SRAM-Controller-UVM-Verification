@@ -79,30 +79,42 @@ AXI-Lite_SRAM_Controller_UVM_Verification/
 
 ## 🚀 How to Run the Project
 
-### Prerequisites
+### For Texas A&M Students
 
-- A SystemVerilog simulator (Cadence Xcelium, Mentor Questa, or similar)
-- UVM library (typically included with the simulator)
-- SystemVerilog compiler support
+If you are a **Texas A&M student** with access to the ECEN Linux servers, follow these steps:
 
-### Running the Testbench
+1. **Clone the repository** on the ECEN Linux server:
+   ```bash
+   git clone <repository-url>
+   cd AXI-Lite-SRAM-Controller-UVM-Verification
+   ```
 
-1. **Navigate to the simulation directory**:
+2. **Load the CSCE-616 environment**:
+   ```bash
+   load-csce-616
+   ```
+   This command sets up all necessary EDA tools, compilers, and simulators for the project.
+
+3. **Run the setup script**:
+   ```bash
+   bash setupX.bash
+   ```
+   This script configures the environment and prepares the project for simulation.
+
+4. **Navigate to the simulation directory and run the testbench**:
    ```bash
    cd sim
-   ```
-
-2. **Run the complete testbench**:
-   ```bash
    xrun -f run.f
    ```
+   This command compiles and runs the complete verification environment using the xrun simulator.
 
-   Or, if using a different simulator:
-   ```bash
-   qsim -f run.f          # Mentor Questa
-   ```
+### For Other Users
 
-3. **View results**: Check simulation logs and waveforms in the output directory.
+If you are not on the TAMU ECEN server, you will need to:
+- Install a compatible SystemVerilog simulator (e.g., Cadence Xcelium, Mentor Questa, or an open-source alternative)
+- Ensure UVM libraries are properly configured
+- Modify the simulation scripts as needed for your environment
+- Run: `xrun -f sim/run.f` (or equivalent command for your simulator)eforms in the output directory.
 
 ---
 
@@ -119,7 +131,6 @@ AXI-Lite_SRAM_Controller_UVM_Verification/
 
 - **Full UVM Testbench:** Modular, reusable, and scalable verification environment
 - **AXI-Lite Protocol Compliance:** Correctly implements master and slave protocols
-- **Transaction-Level Verification:** Abstract communication without low-level signal details
 - **Comprehensive Testing:** Covers normal operations, edge cases, and protocol requirements
 
 ---
