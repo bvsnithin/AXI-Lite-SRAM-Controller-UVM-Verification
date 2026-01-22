@@ -13,6 +13,6 @@ It is organized into three main sections:
 
 
 ## 3. SRAM Basics
-**Read more:** [SRAM Basics](/docs/sram_basics.md)
+**Read more:** [SRAM Basics](/docs/sram.md)
 
 ---
