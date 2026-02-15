@@ -1,87 +1,91 @@
-# AXI-Lite SRAM Controller Verification
+# AXI-Lite SRAM Controller UVM Verification
 
-![Language](https://img.shields.io/badge/Language-SystemVerilog-blue)
-![Methodology](https://img.shields.io/badge/Methodology-UVM-orange)
+A UVM-based verification environment for an AXI-Lite SRAM Controller written in SystemVerilog.
 
-## 📖 Project Overview
+## Overview
 
-This project is a complete **verification environment** built using **SystemVerilog** and **UVM** to validate an **AXI-Lite SRAM Controller**. 
+This project verifies an AXI-Lite SRAM Controller that:
+- Accepts read and write transactions via AXI-Lite protocol
+- Stores data in an internal 1024-word SRAM
+- Supports byte-level writes using write strobes
+- Returns appropriate responses (OKAY/SLVERR)
 
-The goal is to verify that the SRAM controller correctly:
-- Receives read and write transactions from an AXI-Lite master
-- Correctly addresses and accesses the internal SRAM memory
-- Returns appropriate responses with data (for reads) or status (for writes)
-- Handles protocol timing and handshaking requirements
-
----
-
-## 🎯 The Concept
-
-The **AXI-Lite SRAM Controller** acts as a bridge between an AXI-Lite master (like a processor) and SRAM memory:
-
-1. **The Master (AXI-Lite Source):** Initiates read and write transactions with addresses and data.
-2. **The AXI-Lite Protocol:** A lightweight synchronous bus protocol that carries transactions between master and slave.
-3. **The SRAM Controller (Device Under Test):** Translates AXI-Lite commands into SRAM operations.
-4. **The SRAM Memory:** Internal memory accessed by the controller.
-5. **The UVM Testbench (Verification Environment):** Generates stimulus, monitors responses, and validates correctness.
-
-The testbench verifies that the controller handles various scenarios:
-- Basic read/write operations
-- Burst transactions
-- Back-to-back transfers
-- Edge cases and protocol compliance
-
----
-
-## 📁 Directory Structure
+## Directory Structure
 
 ```
-AXI-Lite_SRAM_Controller_UVM_Verification/
-├── README.md                    # Project documentation
-├── setupX.bash                  # Setup script
-├── dut/                         # Design Under Test
-│   └── axilite_sram_controller.sv
-├── tb/                          # UVM Testbench
-│   ├── agent/                   # UVM Agent
-│   │   ├── axilite_agent.sv
-│   │   ├── axilite_driver.sv
-│   │   ├── axilite_monitor.sv
-│   │   ├── axilite_scoreboard.sv
-│   │   └── axilite_sequencer.sv
-│   ├── env/                     # Environment
-│   │   └── env.sv
-│   ├── interface/               # Protocol Interfaces
-│   │   └── axilite_if.sv
-│   ├── transaction/             # Transaction Definitions
-│   │   └── axilite_transaction.sv
-│   ├── test/                    # Test Cases
-│   │   └── base_test.sv
-│   └── top/                     # Top-level Testbench
-│       └── tb_top.sv
-└── sim/                         # Simulation
-    ├── file_list.f              # File compilation list
-    └── run.f                    # Simulation commands
+├── dut/
+│   └── axilite_sram_controller.sv   # Design under test
+├── tb/
+│   ├── agent/
+│   │   ├── axilite_agent.sv         # UVM agent
+│   │   ├── axilite_driver.sv        # Drives AXI-Lite transactions
+│   │   ├── axilite_monitor.sv       # Monitors bus activity
+│   │   ├── axilite_scoreboard.sv    # Checks data integrity
+│   │   └── axilite_sequencer.sv     # Sequencer
+│   ├── env/
+│   │   └── axilite_env.sv           # UVM environment
+│   ├── interface/
+│   │   └── axilite_if.sv            # AXI-Lite interface
+│   ├── sequence/
+│   │   └── axilite_sequence.sv      # Test sequences
+│   ├── test/
+│   │   └── base_test.sv             # Test cases
+│   ├── top/
+│   │   └── tb_top.sv                # Testbench top module
+│   └── transaction/
+│       └── axilite_transaction.sv   # Transaction class
+├── sim/
+│   ├── file_list.f                  # Source file list
+│   └── run.f                        # Simulation options
+└── docs/                            # Documentation
 ```
 
-### Directory Descriptions
+## Running Simulations
 
-- **`dut/`** - The design under test: AXI-Lite SRAM Controller RTL
-- **`tb/`** - Complete UVM-based verification environment:
-  - **`agent/`** - Reusable UVM agent implementing the AXI-Lite protocol
-  - **`env/`** - Environment configuration, scoreboards, and coverage
-  - **`interface/`** - SystemVerilog interface definitions for AXI-Lite protocol
-  - **`transaction/`** - Transaction class definitions for stimulus and response
-  - **`test/`** - Test cases and verification scenarios
-  - **`top/`** - Top-level testbench module
-- **`sim/`** - Simulation artifacts and configuration files
+Navigate to the sim directory and run:
 
----
+```bash
+cd sim
+xrun -f run.f
+```
 
-## 🚀 How to Run the Project
+To run a specific test:
+
+```bash
+xrun -f run.f +UVM_TESTNAME=base_test
+xrun -f run.f +UVM_TESTNAME=write_read_test
+xrun -f run.f +UVM_TESTNAME=full_mem_test
+```
+
+## Available Tests
+
+| Test | Description |
+|------|-------------|
+| base_test | Random read/write transactions |
+| write_read_test | Write to address then read back |
+| full_mem_test | Write and read multiple memory locations |
+
+## DUT Details
+
+The AXI-Lite SRAM Controller implements:
+- 5 AXI-Lite channels (AW, W, B, AR, R)
+- 32-bit address and data width
+- 1024-word internal SRAM (4KB)
+- Word-aligned addressing
+- Byte strobes for partial writes
+
+## Verification Components
+
+- **Driver**: Sends AXI-Lite read/write transactions to DUT
+- **Monitor**: Observes all bus activity
+- **Scoreboard**: Maintains reference memory model, compares read data against expected values
+- **Sequences**: Generate directed and random test patterns
+
+## How to Run the Project
 
 ### For Texas A&M Students
 
-If you are a **Texas A&M student** with access to the ECEN Linux servers, follow these steps:
+If you are a **Texas A&M student** with access to the ECEN or CSCE Linux servers, follow these steps:
 
 1. **Clone the repository** on the ECEN Linux server:
    ```bash
@@ -110,27 +114,4 @@ If you are a **Texas A&M student** with access to the ECEN Linux servers, follow
 
 ### For Other Users
 
-If you are not on the TAMU ECEN server, you will need to:
-- Install a compatible SystemVerilog simulator (e.g., Cadence Xcelium, Mentor Questa, or an open-source alternative)
-- Ensure UVM libraries are properly configured
-- Modify the simulation scripts as needed for your environment
-- Run: `xrun -f sim/run.f` (or equivalent command for your simulator)eforms in the output directory.
-
----
-
-## 📊 Verification Strategy
-
-- **Functional Coverage:** Tracks which transactions and protocols states are exercised
-- **Code Coverage:** Monitors DUT logic and decision coverage
-- **Scoreboarding:** Compares expected vs. actual DUT behavior
-- **Assertions:** Protocol and design assumptions are validated continuously
-
----
-
-## ✨ Key Features
-
-- **Full UVM Testbench:** Modular, reusable, and scalable verification environment
-- **AXI-Lite Protocol Compliance:** Correctly implements master and slave protocols
-- **Comprehensive Testing:** Covers normal operations, edge cases, and protocol requirements
-
----
+If you are not on the TAMU ECEN or CSCE server, I would recommend you to use eda playground to run this project. 
