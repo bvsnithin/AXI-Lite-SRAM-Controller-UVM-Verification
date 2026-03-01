@@ -1,16 +1,17 @@
-+access+rwc                   // Allow probes to record signals
--timescale 1ns/1ps            // Set simulation time precision
--input waves.tcl
+// Simulation options
+-uvm
++access+rwc
+-timescale 1ns/1ps
 
--coverage A                   // Records all coverage
--covoverwrite                 // Overwrite existing coverage db
--covfile ./cov_conf.ccf       // Feed in coverage configuration file
+// Include paths for UVM TB files
++incdir+../tb/transaction
++incdir+../tb/agent
++incdir+../tb/env
++incdir+../tb/sequence
++incdir+../tb/test
 
-// Setup UVM home
--uvmhome $uvmhome
-
-// UVM Verbosity
-+UVM_VERBOSITY=UVM_LOW
-
-// File list that is containing design and TB files to be compiled
+// Source files
 -f file_list.f
+
+// UVM options
++UVM_VERBOSITY=UVM_MEDIUM

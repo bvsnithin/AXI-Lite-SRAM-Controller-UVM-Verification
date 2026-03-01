@@ -1,121 +1,177 @@
-module sram_lite_controller (
-    input logic clk;
-    input logic rst_n;
-    
-    // Write Address Channel - Address & Control (AW)
-    input  logic [31:0] s_axi_awaddr;
-    input  logic        s_axi_awvalid;
-    output logic        s_axi_awready;
+module axilite_sram_controller #(
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter SRAM_DEPTH = 1024
+)(
+    input  logic                    clk,
+    input  logic                    rst_n,
 
-    // Write Data Channel - Write Data (W)
-    input  logic [31:0] s_axi_wdata;
-    input  logic [3:0]  s_axi_wstrb;
-    input  logic        s_axi_wvalid;
-    output logic        s_axi_wready;
+    // Write Address Channel (AW)
+    input  logic [ADDR_WIDTH-1:0]   s_axi_awaddr,
+    input  logic                    s_axi_awvalid,
+    output logic                    s_axi_awready,
 
-    // Write Response Channel - Write Response (B)
-    input  logic       s_axi_bready;
-    output logic       s_axi_bvalid;
-    output logic [1:0] s_axi_bresp;
+    // Write Data Channel (W)
+    input  logic [DATA_WIDTH-1:0]   s_axi_wdata,
+    input  logic [DATA_WIDTH/8-1:0] s_axi_wstrb,
+    input  logic                    s_axi_wvalid,
+    output logic                    s_axi_wready,
 
-    // Read Address Channel - Address & Control (AR)
-    input  logic [31:0] s_axi_araddr;
-    input  logic        s_axi_arvalid;
-    output logic        s_axi_arready;
+    // Write Response Channel (B)
+    input  logic                    s_axi_bready,
+    output logic                    s_axi_bvalid,
+    output logic [1:0]              s_axi_bresp,
 
-    // Read Data Channel - Read Data (R)
-    input  logic        s_axi_rready;
-    output logic [31:0] s_axi_rdata;
-    output logic [1:0]  s_axi_rresp;
-    output logic        s_axi_rvalid;
+    // Read Address Channel (AR)
+    input  logic [ADDR_WIDTH-1:0]   s_axi_araddr,
+    input  logic                    s_axi_arvalid,
+    output logic                    s_axi_arready,
 
-    // SRAM Interface
-    input  logic [31:0] sram_data_out;
-    input  logic        sram_write_done;
-    input  logic        sram_read_done;
-    output logic [31:0] sram_addr;
-    output logic [31:0] sram_data_in;
-    output logic        wr_en;
-    output logic        rd_en;
-
+    // Read Data Channel (R)
+    input  logic                    s_axi_rready,
+    output logic [DATA_WIDTH-1:0]   s_axi_rdata,
+    output logic [1:0]              s_axi_rresp,
+    output logic                    s_axi_rvalid
 );
-    // ----- Write operation -----
-    // Internal registers for write operation
 
-    logic [31:0] internal_awaddr;     // To store address
-    logic [31:0] internal_wdata;      // To store the data  
-    logic [3:0]  internal_wstrb;      // To store the strobes
+    // AXI Response codes
+    localparam RESP_OKAY   = 2'b00;
+    localparam RESP_SLVERR = 2'b10;
 
-    logic aw_received_flag;           // Flag: to show we have received a valid address
-    logic w_received_flag;            // Flag: to show we have received a valid data
+    // Internal SRAM
+    logic [DATA_WIDTH-1:0] sram_mem [0:SRAM_DEPTH-1];
 
-    // Write operation state machine
-
-    // State Definitions
-    typedef enum logic[1:0] {
+    // Write State Machine
+    typedef enum logic [1:0] {
         WR_IDLE,
-        WR_EXEC,
+        WR_DATA,
         WR_RESP
     } wr_state_t;
 
-    wr_state_t wr_present_state, wr_next_state;
+    wr_state_t wr_state, wr_next_state;
 
-    always_ff @( posedge clk or negedge rst_n ) begin : resetCheck
-        if(!rst_n) begin
-            wr_present_state <= WR_IDLE;
-        end else begin 
-            wr_present_state <= wr_next_state;
-        end
+    // Read State Machine
+    typedef enum logic [1:0] {
+        RD_IDLE,
+        RD_DATA
+    } rd_state_t;
+
+    rd_state_t rd_state, rd_next_state;
+
+    // Internal registers
+    logic [ADDR_WIDTH-1:0] wr_addr_reg;
+    logic [DATA_WIDTH-1:0] wr_data_reg;
+    logic [DATA_WIDTH/8-1:0] wr_strb_reg;
+    logic [ADDR_WIDTH-1:0] rd_addr_reg;
+
+    // Address decode (word-aligned)
+    wire [$clog2(SRAM_DEPTH)-1:0] wr_sram_addr = wr_addr_reg[$clog2(SRAM_DEPTH)+1:2];
+    wire [$clog2(SRAM_DEPTH)-1:0] rd_sram_addr = rd_addr_reg[$clog2(SRAM_DEPTH)+1:2];
+
+    // Address valid check
+    wire wr_addr_valid = (wr_addr_reg[ADDR_WIDTH-1:$clog2(SRAM_DEPTH)+2] == '0);
+    wire rd_addr_valid = (rd_addr_reg[ADDR_WIDTH-1:$clog2(SRAM_DEPTH)+2] == '0);
+
+    // =========================================================================
+    // Write State Machine
+    // =========================================================================
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            wr_state <= WR_IDLE;
+        else
+            wr_state <= wr_next_state;
     end
 
-
     always_comb begin
-        s_axi_awready = 0;
-        s_axi_wready = 0;
-        s_axi_bvalid = 0;
-        sram_wr_en = 0;
-
-        wr_next_state = wr_present_state;
-
-        case(wr_present_state)
+        wr_next_state = wr_state;
+        case (wr_state)
             WR_IDLE: begin
-                // Controller is ready for new requests if the flags are 0
-                s_axi_awready = ~aw_received_flag;
-                s_axi_wready = ~w_received_flag;
-                
-                // If we have both the address and data ready we will move to execute state
-                if(aw_received_flag && w_received_flag) begin
-                    wr_next_state = WR_EXEC;
-                    wr_en = 1;
-                end
+                if (s_axi_awvalid && s_axi_wvalid)
+                    wr_next_state = WR_RESP;
+                else if (s_axi_awvalid)
+                    wr_next_state = WR_DATA;
             end
-
-            WR_EXEC:begin
-                internal_awaddr = s_axi_awaddr;
-                internal_wdata = s_axi_wdata;
-                internal_wstrb = s_axi_wstrb;
-
-                if(sram_write_done) begin
-                    wr_next_state = WR_RESP
-                end
-
+            WR_DATA: begin
+                if (s_axi_wvalid)
+                    wr_next_state = WR_RESP;
             end
-
             WR_RESP: begin
-                s_axi_bvalid = 1;
-
-                if(s_axi_bready) begin
+                if (s_axi_bready)
                     wr_next_state = WR_IDLE;
-                end
             end
+            default: wr_next_state = WR_IDLE;
         endcase
     end
 
+    // Write address capture
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            wr_addr_reg <= '0;
+        else if (s_axi_awvalid && s_axi_awready)
+            wr_addr_reg <= s_axi_awaddr;
+    end
 
+    // Write data capture and SRAM write
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            wr_data_reg <= '0;
+            wr_strb_reg <= '0;
+        end else if (s_axi_wvalid && s_axi_wready) begin
+            wr_data_reg <= s_axi_wdata;
+            wr_strb_reg <= s_axi_wstrb;
+            // Perform byte-wise SRAM write
+            if (wr_addr_valid || (wr_state == WR_IDLE && s_axi_awvalid)) begin
+                for (int i = 0; i < DATA_WIDTH/8; i++) begin
+                    if (s_axi_wstrb[i])
+                        sram_mem[(wr_state == WR_IDLE) ? s_axi_awaddr[$clog2(SRAM_DEPTH)+1:2] : wr_sram_addr][i*8 +: 8] <= s_axi_wdata[i*8 +: 8];
+                end
+            end
+        end
+    end
 
-    
+    // Write channel outputs
+    assign s_axi_awready = (wr_state == WR_IDLE);
+    assign s_axi_wready  = (wr_state == WR_IDLE) || (wr_state == WR_DATA);
+    assign s_axi_bvalid  = (wr_state == WR_RESP);
+    assign s_axi_bresp   = wr_addr_valid ? RESP_OKAY : RESP_SLVERR;
 
-    
+    // =========================================================================
+    // Read State Machine
+    // =========================================================================
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            rd_state <= RD_IDLE;
+        else
+            rd_state <= rd_next_state;
+    end
 
+    always_comb begin
+        rd_next_state = rd_state;
+        case (rd_state)
+            RD_IDLE: begin
+                if (s_axi_arvalid)
+                    rd_next_state = RD_DATA;
+            end
+            RD_DATA: begin
+                if (s_axi_rready)
+                    rd_next_state = RD_IDLE;
+            end
+            default: rd_next_state = RD_IDLE;
+        endcase
+    end
 
-endmodule: sram_lite_controller
+    // Read address capture
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            rd_addr_reg <= '0;
+        else if (s_axi_arvalid && s_axi_arready)
+            rd_addr_reg <= s_axi_araddr;
+    end
+
+    // Read channel outputs
+    assign s_axi_arready = (rd_state == RD_IDLE);
+    assign s_axi_rvalid  = (rd_state == RD_DATA);
+    assign s_axi_rdata   = rd_addr_valid ? sram_mem[rd_sram_addr] : '0;
+    assign s_axi_rresp   = rd_addr_valid ? RESP_OKAY : RESP_SLVERR;
+
+endmodule: axilite_sram_controller
