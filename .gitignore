@@ -1,3 +1,8 @@
 sim/xrun.log
 sim/xrun.history
-sim/xcelium.d/sim/dump.vcd
+sim/xcelium.d/
+sim/dump.vcd
+sim/imc.*
+sim/cov_work/
+sim/cov_html/
+sim/mdv.log

@@ -10,6 +10,7 @@ module tb_top;
     `include "axilite_sequencer.sv"
     `include "axilite_driver.sv"
     `include "axilite_monitor.sv"
+    `include "axilite_coverage.sv"
     `include "axilite_scoreboard.sv"
     `include "axilite_agent.sv"
     `include "axilite_env.sv"

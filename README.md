@@ -20,6 +20,7 @@ This project verifies an AXI-Lite SRAM Controller that:
 │   │   ├── axilite_agent.sv         # UVM agent
 │   │   ├── axilite_driver.sv        # Drives AXI-Lite transactions
 │   │   ├── axilite_monitor.sv       # Monitors bus activity
+│   │   ├── axilite_coverage.sv      # Functional coverage subscriber
 │   │   ├── axilite_scoreboard.sv    # Checks data integrity
 │   │   └── axilite_sequencer.sv     # Sequencer
 │   ├── env/
@@ -36,26 +37,53 @@ This project verifies an AXI-Lite SRAM Controller that:
 │       └── axilite_transaction.sv   # Transaction class
 ├── sim/
 │   ├── file_list.f                  # Source file list
-│   └── run.f                        # Simulation options
+│   ├── run.f                        # Simulation options
+│   ├── imc_cmd.tcl                  # IMC coverage report script
+│   └── Makefile                     # Makefile for automation
 └── docs/                            # Documentation
 ```
 
 ## Running Simulations
 
-Navigate to the sim directory and run:
+Navigate to the `sim` directory and use the `Makefile`:
 
 ```bash
 cd sim
-xrun -f run.f
+make                  # Runs default test (base_test) and generates coverage
 ```
 
-To run a specific test:
+To run individual tests without generating coverage immediately:
+
+```bash
+make run TEST=base_test
+make run TEST=write_read_test
+make run TEST=full_mem_test
+```
+
+Alternatively, using `xrun` directly:
 
 ```bash
 xrun -f run.f +UVM_TESTNAME=base_test
 xrun -f run.f +UVM_TESTNAME=write_read_test
 xrun -f run.f +UVM_TESTNAME=full_mem_test
 ```
+
+## Coverage Reports
+
+Code and functional coverage are enabled by default in `run.f`. To generate and view the HTML report:
+
+1. **Run the simulation**:
+   ```bash
+   make run TEST=full_mem_test
+   ```
+
+2. **Generate the HTML report**:
+   ```bash
+   make cov
+   ```
+
+3. **View the report**:
+   Open `sim/cov_html/index.html` in any web browser.
 
 ## Available Tests
 

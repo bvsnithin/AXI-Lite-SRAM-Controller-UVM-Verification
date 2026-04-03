@@ -5,6 +5,7 @@ class axilite_agent extends uvm_agent;
     axilite_driver    driver;
     axilite_monitor   monitor;
     axilite_sequencer sequencer;
+    axilite_coverage  coverage;
 
     function new(string name = "axilite_agent", uvm_component parent);
         super.new(name, parent);
@@ -14,6 +15,7 @@ class axilite_agent extends uvm_agent;
         super.build_phase(phase);
 
         monitor = axilite_monitor::type_id::create("monitor", this);
+        coverage = axilite_coverage::type_id::create("coverage", this);
 
         if (get_is_active() == UVM_ACTIVE) begin
             driver    = axilite_driver::type_id::create("driver", this);
@@ -27,6 +29,7 @@ class axilite_agent extends uvm_agent;
         if (get_is_active() == UVM_ACTIVE) begin
             driver.seq_item_port.connect(sequencer.seq_item_export);
         end
+        monitor.ap.connect(coverage.analysis_export);
     endfunction: connect_phase
 
 endclass: axilite_agent

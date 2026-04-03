@@ -2,6 +2,10 @@
 -uvm
 +access+rwc
 -timescale 1ns/1ps
+-coverage all
+-covoverwrite
+-covtest test
+-covworkdir cov_work
 
 // Include paths for UVM TB files
 +incdir+../tb/transaction
